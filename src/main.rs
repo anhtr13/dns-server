@@ -4,7 +4,7 @@ use std::net::UdpSocket;
 
 use anyhow::Result;
 
-use crate::message::{Header, Message, Question};
+use crate::message::{Answer, Header, Message, Question};
 
 fn main() -> Result<()> {
     println!("Logs from program:");
@@ -16,12 +16,15 @@ fn main() -> Result<()> {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
-                let question = Question::new("codecrafters.io".to_string(), 1, 1)?;
                 let header = Header {
                     qdcount: 1,
+                    ancount: 1,
                     ..Default::default()
                 };
-                let message = Message::new(header, question);
+                let question = Question::new("codecrafters.io".to_string(), 1, 1)?;
+                let answer =
+                    Answer::new("codecrafters.io".to_string(), 1, 1, 60, 4, vec![8, 8, 8, 8])?;
+                let message = Message::new(header, question, answer);
                 udp_socket
                     .send_to(&message.serialize(), source)
                     .expect("Failed to send response");

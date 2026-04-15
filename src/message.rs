@@ -60,7 +60,7 @@ impl Header {
     }
 }
 
-pub enum QuestionType {
+pub enum RfcType {
     A,
     Ns,
     Md,
@@ -79,7 +79,7 @@ pub enum QuestionType {
     Txt,
 }
 
-impl QuestionType {
+impl RfcType {
     pub fn from_u16(val: u16) -> Result<Self> {
         match val {
             1 => Ok(Self::A),
@@ -123,14 +123,14 @@ impl QuestionType {
     }
 }
 
-pub enum QuestionClass {
+pub enum RfcClass {
     In,
     Cs,
     Ch,
     Hs,
 }
 
-impl QuestionClass {
+impl RfcClass {
     pub fn from_u16(val: u16) -> Result<Self> {
         match val {
             1 => Ok(Self::In),
@@ -151,16 +151,20 @@ impl QuestionClass {
 }
 
 pub struct Question {
-    pub name: String,
-    pub qtype: QuestionType,
-    pub class: QuestionClass,
+    name: String,
+    qtype: RfcType,
+    qclass: RfcClass,
 }
 
 impl Question {
-    pub fn new(name: String, qtype: u16, class: u16) -> Result<Self> {
-        let qtype = QuestionType::from_u16(qtype)?;
-        let class = QuestionClass::from_u16(class)?;
-        Ok(Self { name, qtype, class })
+    pub fn new(name: String, qtype: u16, qclass: u16) -> Result<Self> {
+        let qtype = RfcType::from_u16(qtype)?;
+        let qclass = RfcClass::from_u16(qclass)?;
+        Ok(Self {
+            name,
+            qtype,
+            qclass,
+        })
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -171,7 +175,52 @@ impl Question {
         }
         res.push(0);
         res.extend(self.qtype.to_u16().to_be_bytes());
-        res.extend(self.class.to_u16().to_be_bytes());
+        res.extend(self.qclass.to_u16().to_be_bytes());
+        res
+    }
+}
+
+pub struct Answer {
+    name: String,
+    atype: RfcType,
+    aclass: RfcClass,
+    ttl: u32,
+    length: u16,
+    data: Vec<u8>,
+}
+
+impl Answer {
+    pub fn new(
+        name: String,
+        atype: u16,
+        aclass: u16,
+        ttl: u32,
+        length: u16,
+        data: Vec<u8>,
+    ) -> Result<Self> {
+        let atype = RfcType::from_u16(atype)?;
+        let aclass = RfcClass::from_u16(aclass)?;
+        Ok(Self {
+            name,
+            atype,
+            aclass,
+            ttl,
+            length,
+            data,
+        })
+    }
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut res = Vec::new();
+        for label in self.name.split('.') {
+            res.push(label.len() as u8);
+            res.extend(label.as_bytes());
+        }
+        res.push(0);
+        res.extend(self.atype.to_u16().to_be_bytes());
+        res.extend(self.aclass.to_u16().to_be_bytes());
+        res.extend(self.ttl.to_be_bytes());
+        res.extend(self.length.to_be_bytes());
+        res.extend(&self.data);
         res
     }
 }
@@ -179,17 +228,23 @@ impl Question {
 pub struct Message {
     header: Header,
     question: Question,
+    answer: Answer,
 }
 
 impl Message {
-    pub fn new(header: Header, question: Question) -> Self {
-        Self { header, question }
+    pub fn new(header: Header, question: Question, answer: Answer) -> Self {
+        Self {
+            header,
+            question,
+            answer,
+        }
     }
 
     pub fn serialize(&self) -> Vec<u8> {
         let mut res = Vec::new();
         res.extend(self.header.serialize());
         res.extend(self.question.serialize());
+        res.extend(self.answer.serialize());
         res
     }
 }
