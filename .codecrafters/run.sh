@@ -8,4 +8,4 @@
 
 set -e # Exit on failure
 
-exec /tmp/codecrafters-build-dns-server-rust/release/codecrafters-dns-server "$@"
+exec /tmp/codecrafters-build-dns-server-rust/release/dns-server "$@"
