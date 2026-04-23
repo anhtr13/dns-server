@@ -1,15 +1,28 @@
+mod db;
 mod message;
+mod resolver;
 
-use std::net::UdpSocket;
+use std::{
+    env::{self},
+    net::UdpSocket,
+};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
-use crate::message::{Message, answer::Answer};
+use crate::{
+    db::DataBase,
+    message::{Message, answer::Answer},
+    resolver::Resolver,
+};
 
 fn main() -> Result<()> {
+    let db = DataBase::new();
     println!("Logs from program:");
 
-    let udp_socket = UdpSocket::bind("127.0.0.1:2053").expect("Failed to bind to address");
+    let args: Vec<_> = env::args().collect();
+    let resolver = args.get(2);
+
+    let udp_socket = UdpSocket::bind("127.0.0.1:2053").context("Failed to bind to address")?;
     let mut buf = [0u8; 512];
 
     loop {
@@ -17,7 +30,27 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut message = Message::from_bytes(&buf[..size])?;
+                let mut message =
+                    Message::from_bytes(&buf[..size]).context("Failed to parse message")?;
+
+                if let Some(addr) = resolver {
+                    let resolver = Resolver::new(addr).context("Failed to create resolver")?;
+                    message = resolver
+                        .resolve(message)
+                        .context("Failed to resolve message")?;
+                } else {
+                    for q in message.questions.iter() {
+                        let mut a = Answer::default();
+                        a.labels = q.labels.clone();
+                        a.atype = q.qtype;
+                        a.aclass = q.qclass;
+                        a.ttl = 60;
+                        a.length = 4;
+                        a.data = db.get(&q.labels.join(".")).unwrap_or(vec![8, 8, 8, 8]);
+                        message.answers.push(a);
+                    }
+                }
+
                 message.header.qr = 1;
                 message.header.aa = 0;
                 message.header.tc = 0;
@@ -26,20 +59,9 @@ fn main() -> Result<()> {
                 message.header.rcode = if message.header.opcode == 0 { 0 } else { 4 };
                 message.header.ancount = message.header.qdcount;
 
-                for q in message.questions.iter() {
-                    let mut a = Answer::default();
-                    a.labels = q.labels.clone();
-                    a.atype = q.qtype;
-                    a.aclass = q.qclass;
-                    a.ttl = 60;
-                    a.length = 4;
-                    a.data = vec![8, 8, 8, 8];
-                    message.answers.push(a);
-                }
-
                 udp_socket
                     .send_to(&message.into_bytes(), source)
-                    .expect("Failed to send response");
+                    .context("Failed to send response")?;
             }
             Err(e) => {
                 eprintln!("Error receiving data: {}", e);

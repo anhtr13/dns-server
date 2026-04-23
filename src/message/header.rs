@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use bytes::Buf;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Header {
     pub id: u16,
     pub qr: u8,
@@ -40,22 +40,22 @@ impl Default for Header {
 }
 
 impl Header {
-    pub fn parse(data: &mut Cursor<&[u8]>) -> Self {
-        let id = data.get_u16();
-        let second_bit = data.get_u8();
-        let qr = (second_bit & 0b1000_0000) >> 7;
-        let opcode = (second_bit & 0b0111_1000) >> 3;
-        let aa = (second_bit & 0b0000_0100) >> 2;
-        let tc = (second_bit & 0b0000_0010) >> 1;
-        let rd = second_bit & 1;
-        let third_bit = data.get_u8();
-        let ra = (third_bit & 0b1000_0000) >> 7;
-        let z = (third_bit & 0b0111_0000) >> 4;
-        let rcode = third_bit & 0b0000_1111;
-        let qdcount = data.get_u16();
-        let ancount = data.get_u16();
-        let nscount = data.get_u16();
-        let arcount = data.get_u16();
+    pub fn parse(reader: &mut Cursor<&[u8]>) -> Self {
+        let id = reader.get_u16();
+        let byte = reader.get_u8();
+        let qr = (byte & 0b1000_0000) >> 7;
+        let opcode = (byte & 0b0111_1000) >> 3;
+        let aa = (byte & 0b0000_0100) >> 2;
+        let tc = (byte & 0b0000_0010) >> 1;
+        let rd = byte & 1;
+        let byte = reader.get_u8();
+        let ra = (byte & 0b1000_0000) >> 7;
+        let z = (byte & 0b0111_0000) >> 4;
+        let rcode = byte & 0b0000_1111;
+        let qdcount = reader.get_u16();
+        let ancount = reader.get_u16();
+        let nscount = reader.get_u16();
+        let arcount = reader.get_u16();
         Self {
             id,
             qr,
@@ -74,24 +74,24 @@ impl Header {
     }
 
     pub fn into_bytes(self) -> Vec<u8> {
-        let mut res = Vec::with_capacity(12);
-        res.extend(self.id.to_be_bytes());
-        let mut second_bit = 0u8;
-        second_bit |= (self.qr & 1) << 7;
-        second_bit |= (self.opcode & 0b0000_1111) << 3;
-        second_bit |= (self.aa & 1) << 2;
-        second_bit |= (self.tc & 1) << 1;
-        second_bit |= self.rd & 1;
-        res.push(second_bit);
-        let mut third_bit = 0u8;
-        third_bit |= (self.ra & 1) << 7;
-        third_bit |= (self.z & 0b0000_0111) << 4;
-        third_bit |= self.rcode & 0b0000_1111;
-        res.push(third_bit);
-        res.extend(self.qdcount.to_be_bytes());
-        res.extend(self.ancount.to_be_bytes());
-        res.extend(self.nscount.to_be_bytes());
-        res.extend(self.arcount.to_be_bytes());
-        res
+        let mut bytes = Vec::with_capacity(12);
+        bytes.extend(self.id.to_be_bytes());
+        let mut byte = 0u8;
+        byte |= (self.qr & 1) << 7;
+        byte |= (self.opcode & 0b0000_1111) << 3;
+        byte |= (self.aa & 1) << 2;
+        byte |= (self.tc & 1) << 1;
+        byte |= self.rd & 1;
+        bytes.push(byte);
+        let mut byte = 0u8;
+        byte |= (self.ra & 1) << 7;
+        byte |= (self.z & 0b0000_0111) << 4;
+        byte |= self.rcode & 0b0000_1111;
+        bytes.push(byte);
+        bytes.extend(self.qdcount.to_be_bytes());
+        bytes.extend(self.ancount.to_be_bytes());
+        bytes.extend(self.nscount.to_be_bytes());
+        bytes.extend(self.arcount.to_be_bytes());
+        bytes
     }
 }

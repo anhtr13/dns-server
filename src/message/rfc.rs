@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum RfcType {
     A,
     Ns,
@@ -64,7 +64,7 @@ impl RfcType {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum RfcClass {
     In,
     Cs,
