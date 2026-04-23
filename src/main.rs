@@ -4,7 +4,7 @@ use std::net::UdpSocket;
 
 use anyhow::Result;
 
-use crate::message::Message;
+use crate::message::{Message, answer::Answer};
 
 fn main() -> Result<()> {
     println!("Logs from program:");
@@ -17,24 +17,28 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut message = Message::parse(&buf[..size])?;
+                let mut message = Message::from_bytes(&buf[..size])?;
                 message.header.qr = 1;
                 message.header.aa = 0;
                 message.header.tc = 0;
                 message.header.ra = 0;
                 message.header.z = 0;
                 message.header.rcode = if message.header.opcode == 0 { 0 } else { 4 };
-                message.header.ancount = 1;
+                message.header.ancount = message.header.qdcount;
 
-                message.answer.name = message.question.name.clone();
-                message.answer.atype = message.question.qtype;
-                message.answer.aclass = message.question.qclass;
-                message.answer.ttl = 60;
-                message.answer.length = 4;
-                message.answer.data = vec![8, 8, 8, 8];
+                for q in message.questions.iter() {
+                    let mut a = Answer::default();
+                    a.labels = q.labels.clone();
+                    a.atype = q.qtype;
+                    a.aclass = q.qclass;
+                    a.ttl = 60;
+                    a.length = 4;
+                    a.data = vec![8, 8, 8, 8];
+                    message.answers.push(a);
+                }
 
                 udp_socket
-                    .send_to(&message.serialize(), source)
+                    .send_to(&message.into_bytes(), source)
                     .expect("Failed to send response");
             }
             Err(e) => {

@@ -1,7 +1,7 @@
 use crate::message::rfc::{RfcClass, RfcType};
 
 pub struct Answer {
-    pub name: String,
+    pub labels: Vec<String>,
     pub atype: RfcType,
     pub aclass: RfcClass,
     pub ttl: u32,
@@ -12,7 +12,7 @@ pub struct Answer {
 impl Answer {
     pub fn default() -> Self {
         Self {
-            name: String::new(),
+            labels: Vec::new(),
             atype: RfcType::A,
             aclass: RfcClass::In,
             ttl: 60,
@@ -21,9 +21,9 @@ impl Answer {
         }
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Vec<u8> {
         let mut res = Vec::new();
-        for label in self.name.split('.') {
+        for label in self.labels.iter() {
             res.push(label.len() as u8);
             res.extend(label.as_bytes());
         }

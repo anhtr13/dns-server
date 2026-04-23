@@ -11,27 +11,34 @@ use crate::message::{answer::Answer, header::Header, question::Question};
 
 pub struct Message {
     pub header: Header,
-    pub question: Question,
-    pub answer: Answer,
+    pub questions: Vec<Question>,
+    pub answers: Vec<Answer>,
 }
 
 impl Message {
-    pub fn parse(buf: &[u8]) -> Result<Self> {
+    pub fn from_bytes(buf: &[u8]) -> Result<Self> {
         let mut data = Cursor::new(buf);
         let header = Header::parse(&mut data);
-        let question = Question::parse(&mut data)?;
+        let mut questions = Vec::new();
+        for _ in 0..header.qdcount {
+            questions.push(Question::parse(&mut data)?);
+        }
         Ok(Self {
             header,
-            question,
-            answer: Answer::default(),
+            questions,
+            answers: Vec::new(),
         })
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Vec<u8> {
         let mut res = Vec::new();
-        res.extend(self.header.serialize());
-        res.extend(self.question.serialize());
-        res.extend(self.answer.serialize());
+        res.extend(self.header.into_bytes());
+        for q in self.questions {
+            res.extend(q.into_bytes());
+        }
+        for a in self.answers {
+            res.extend(a.into_bytes());
+        }
         res
     }
 }

@@ -73,7 +73,7 @@ impl Header {
         }
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Vec<u8> {
         let mut res = Vec::with_capacity(12);
         res.extend(self.id.to_be_bytes());
         let mut second_bit = 0u8;
