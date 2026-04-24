@@ -39,7 +39,7 @@ impl RfcType {
             14 => Ok(Self::Minfo),
             15 => Ok(Self::Mx),
             16 => Ok(Self::Txt),
-            _ => anyhow::bail!("unknow question type"),
+            _ => anyhow::bail!("unknow RFC type"),
         }
     }
     pub fn as_u16(&self) -> u16 {
@@ -79,7 +79,7 @@ impl RfcClass {
             2 => Ok(Self::Cs),
             3 => Ok(Self::Ch),
             4 => Ok(Self::Hs),
-            _ => anyhow::bail!("unknow question class"),
+            _ => anyhow::bail!("unknow RFC class"),
         }
     }
 

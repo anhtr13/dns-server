@@ -45,8 +45,8 @@ fn main() -> Result<()> {
                         a.atype = q.qtype;
                         a.aclass = q.qclass;
                         a.ttl = 60;
-                        a.length = 4;
                         a.data = db.get(&q.labels.join(".")).unwrap_or(vec![8, 8, 8, 8]);
+                        a.length = a.data.len() as u16;
                         message.answers.push(a);
                     }
                 }

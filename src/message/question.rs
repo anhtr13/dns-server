@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bytes::Buf;
 
 use crate::message::rfc::{RfcClass, RfcType};
@@ -24,7 +24,8 @@ impl Question {
                 let byte_1 = byte & 0b0011_1111;
                 let byte_2 = reader.get_u8();
                 let offset = u16::from_be_bytes([byte_1, byte_2]);
-                Self::parse_compressed(offset as u64, reader, &mut labels)?;
+                Self::read_labels_from_pointer(reader, &mut labels, offset as u64)
+                    .context("Failed to parse compressed labels")?;
                 break;
             }
             let mut label = vec![0u8; byte as usize];
@@ -40,23 +41,23 @@ impl Question {
         })
     }
 
-    fn parse_compressed(
-        offset: u64,
-        data: &mut Cursor<&[u8]>,
+    fn read_labels_from_pointer(
+        reader: &mut Cursor<&[u8]>,
         labels: &mut Vec<String>,
+        offset: u64,
     ) -> Result<()> {
-        let pin_position = data.position();
-        data.set_position(offset);
-        while data.position() < pin_position - 1 {
-            let byte = data.get_u8();
+        let pinned_position = reader.position();
+        reader.set_position(offset);
+        while reader.position() < pinned_position - 1 {
+            let byte = reader.get_u8();
             if byte == b'\x00' {
                 break;
             }
             let mut label = vec![0u8; byte as usize];
-            data.read_exact(&mut label)?;
+            reader.read_exact(&mut label)?;
             labels.push(String::from_utf8(label)?);
         }
-        data.set_position(pin_position);
+        reader.set_position(pinned_position);
         Ok(())
     }
 
