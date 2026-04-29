@@ -73,10 +73,9 @@ impl Question {
         bytes
     }
 
-    pub fn compress(self, lcs: usize, offset: u16) -> Vec<u8> {
+    pub fn compress(self, retained_len: usize, offset: u16) -> Vec<u8> {
         let mut bytes = Vec::new();
-        let length = self.labels.len() - lcs;
-        for label in self.labels.into_iter().take(length) {
+        for label in self.labels.into_iter().take(retained_len) {
             bytes.push(label.len() as u8);
             bytes.extend(label.into_bytes());
         }

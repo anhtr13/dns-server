@@ -52,7 +52,8 @@ impl Message {
                 && lcs > 0
             {
                 let offset = base_offsets[base_offsets.len() - lcs];
-                bytes.extend(q.compress(lcs, offset as u16));
+                let retained_len = q.labels.len() - lcs;
+                bytes.extend(q.compress(retained_len, offset as u16));
             } else {
                 bytes.extend(q.into_bytes());
             }
