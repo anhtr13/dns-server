@@ -56,16 +56,16 @@ impl Answer {
 
     pub fn into_bytes(self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        for label in self.labels.iter() {
+        for label in self.labels.into_iter() {
             bytes.push(label.len() as u8);
-            bytes.extend(label.as_bytes());
+            bytes.extend(label.into_bytes());
         }
         bytes.push(0);
         bytes.extend(self.atype.as_u16().to_be_bytes());
         bytes.extend(self.aclass.as_u16().to_be_bytes());
         bytes.extend(self.ttl.to_be_bytes());
         bytes.extend(self.length.to_be_bytes());
-        bytes.extend(&self.data);
+        bytes.extend(self.data);
         bytes
     }
 }

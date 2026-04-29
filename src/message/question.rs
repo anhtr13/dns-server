@@ -63,11 +63,26 @@ impl Question {
 
     pub fn into_bytes(self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        for label in self.labels.iter() {
+        for label in self.labels.into_iter() {
             bytes.push(label.len() as u8);
-            bytes.extend(label.as_bytes());
+            bytes.extend(label.into_bytes());
         }
         bytes.push(0);
+        bytes.extend(self.qtype.as_u16().to_be_bytes());
+        bytes.extend(self.qclass.as_u16().to_be_bytes());
+        bytes
+    }
+
+    pub fn compress(self, lcs: usize, offset: u16) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        let length = self.labels.len() - lcs;
+        for label in self.labels.into_iter().take(length) {
+            bytes.push(label.len() as u8);
+            bytes.extend(label.into_bytes());
+        }
+        let mut offset = offset.to_be_bytes();
+        offset[0] |= 0b1100_0000;
+        bytes.extend(offset);
         bytes.extend(self.qtype.as_u16().to_be_bytes());
         bytes.extend(self.qclass.as_u16().to_be_bytes());
         bytes

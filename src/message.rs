@@ -38,12 +38,40 @@ impl Message {
     pub fn into_bytes(self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(self.header.into_bytes());
-        for q in self.questions {
-            bytes.extend(q.into_bytes());
+
+        let base_labels = self.questions[0].labels.clone();
+        let mut base_offsets = vec![0; base_labels.len()];
+        base_offsets[0] = bytes.len();
+        for i in 0..base_labels.len() - 1 {
+            base_offsets[i + 1] = base_offsets[i] + base_labels[i].len() + 1;
         }
+
+        for (i, q) in self.questions.into_iter().enumerate() {
+            if i > 0
+                && let lcs = longest_common_suffix(&base_labels, &q.labels)
+                && lcs > 0
+            {
+                let offset = base_offsets[base_offsets.len() - lcs];
+                bytes.extend(q.compress(lcs, offset as u16));
+            } else {
+                bytes.extend(q.into_bytes());
+            }
+        }
+
         for a in self.answers {
             bytes.extend(a.into_bytes());
         }
+
         bytes
     }
+}
+
+fn longest_common_suffix(a1: &[String], a2: &[String]) -> usize {
+    let (l1, l2) = (a1.len() - 1, a2.len() - 1);
+    for i in 0..=l1.min(l2) {
+        if a1[l1 - i] != a2[l2 - i] {
+            return i;
+        }
+    }
+    l1.min(l2)
 }
